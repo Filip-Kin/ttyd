@@ -1,4 +1,4 @@
-import { h, Component } from 'preact';
+import { h, Component, Fragment } from 'preact';
 
 import { Terminal } from './terminal';
 
@@ -20,49 +20,104 @@ const clientOptions = {
     isWindows: false,
     unicodeVersion: '11',
 } as ClientOptions;
+
+const darkTheme: ITheme = {
+    foreground: '#d2d2d2',
+    background: '#2b2b2b',
+    cursor: '#adadad',
+    black: '#000000',
+    red: '#d81e00',
+    green: '#5ea702',
+    yellow: '#cfae00',
+    blue: '#427ab3',
+    magenta: '#89658e',
+    cyan: '#00a7aa',
+    white: '#dbded8',
+    brightBlack: '#686a66',
+    brightRed: '#f54235',
+    brightGreen: '#99e343',
+    brightYellow: '#fdeb61',
+    brightBlue: '#84b0d8',
+    brightMagenta: '#bc94b7',
+    brightCyan: '#37e6e8',
+    brightWhite: '#f1f1f0',
+};
+
+const lightTheme: ITheme = {
+    foreground: '#2c2c2c',
+    background: '#ffffff',
+    cursor: '#333333',
+    black: '#2b2b2b',
+    red: '#cc0000',
+    green: '#4e9a06',
+    yellow: '#c4a000',
+    blue: '#3465a4',
+    magenta: '#75507b',
+    cyan: '#06989a',
+    white: '#d3d7cf',
+    brightBlack: '#555753',
+    brightRed: '#ef2929',
+    brightGreen: '#8ae234',
+    brightYellow: '#fce94f',
+    brightBlue: '#729fcf',
+    brightMagenta: '#ad7fa8',
+    brightCyan: '#34e2e2',
+    brightWhite: '#eeeeec',
+};
+
+const savedTheme = localStorage.getItem('ttyd-theme');
+const isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 const termOptions = {
-    fontSize: 13,
+    fontSize: isMobile ? 16 : 13,
     fontFamily: 'Consolas,Liberation Mono,Menlo,Courier,monospace',
-    theme: {
-        foreground: '#d2d2d2',
-        background: '#2b2b2b',
-        cursor: '#adadad',
-        black: '#000000',
-        red: '#d81e00',
-        green: '#5ea702',
-        yellow: '#cfae00',
-        blue: '#427ab3',
-        magenta: '#89658e',
-        cyan: '#00a7aa',
-        white: '#dbded8',
-        brightBlack: '#686a66',
-        brightRed: '#f54235',
-        brightGreen: '#99e343',
-        brightYellow: '#fdeb61',
-        brightBlue: '#84b0d8',
-        brightMagenta: '#bc94b7',
-        brightCyan: '#37e6e8',
-        brightWhite: '#f1f1f0',
-    } as ITheme,
+    theme: savedTheme === 'light' ? lightTheme : darkTheme,
     allowProposedApi: true,
 } as ITerminalOptions;
+
 const flowControl = {
     limit: 100000,
     highWater: 10,
     lowWater: 4,
 } as FlowControl;
 
-export class App extends Component {
-    render() {
+interface State {
+    light: boolean;
+}
+
+export class App extends Component<{}, State> {
+    constructor(props: {}) {
+        super(props);
+        const light = savedTheme === 'light';
+        this.state = { light };
+        if (light) document.body.classList.add('theme-light');
+    }
+
+    private toggleTheme = () => {
+        const light = !this.state.light;
+        const theme = light ? lightTheme : darkTheme;
+        this.setState({ light });
+        document.body.classList.toggle('theme-light', light);
+        document.body.style.backgroundColor = theme.background as string;
+        document.documentElement.style.backgroundColor = theme.background as string;
+        localStorage.setItem('ttyd-theme', light ? 'light' : 'dark');
+        if (window.term) window.term.options.theme = theme;
+    };
+
+    render(_: {}, { light }: State) {
         return (
-            <Terminal
-                id="terminal-container"
-                wsUrl={wsUrl}
-                tokenUrl={tokenUrl}
-                clientOptions={clientOptions}
-                termOptions={termOptions}
-                flowControl={flowControl}
-            />
+            <Fragment>
+                <button class="theme-toggle" onClick={this.toggleTheme} title="Toggle theme" aria-label="Toggle theme">
+                    {light ? '🌙' : '☀'}
+                </button>
+                <Terminal
+                    id="terminal-container"
+                    wsUrl={wsUrl}
+                    tokenUrl={tokenUrl}
+                    clientOptions={clientOptions}
+                    termOptions={termOptions}
+                    flowControl={flowControl}
+                />
+            </Fragment>
         );
     }
 }
